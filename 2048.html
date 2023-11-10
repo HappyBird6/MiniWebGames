@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style type="text/css">
+        #board_2048 {
+            border: 1px solid black;
+            background-color: #faebd7;
+        }
+
+        #board_2048 td {
+            border: 1px solid black;
+            width: 80px;
+            height: 80px;
+            text-align: center;
+            font-size: 30px;
+        }
+
+        #board_control {
+            margin-top: 2px;
+            border: 1px solid black;
+            margin-bottom: 2px;
+        }
+
+        #board_control td {
+            width: 50px;
+            height: 50px;
+        }
+
+        #board_control td .button_control {
+            width: 100%;
+            height: 100%;
+        }
+
+        #board_log {
+            border: 1px solid black;
+            width: 400px;
+            height: 500px;
+            overflow: scroll;
+            overflow-x: hidden;
+        }
+
+        #leftPanel,
+        #rightPanel {
+            float: left;
+            padding: 10px;
+        }
+        #leftBottomPanel > *{
+            display: inline-block;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div id="leftPanel">
+        <table id="board_2048">
+            <tr>
+                <td class="td" id="cell_11">1,1</td>
+                <td class="td" id="cell_12">1,2</td>
+                <td class="td" id="cell_13">1,3</td>
+                <td class="td" id="cell_14">1,4</td>
+            </tr>
+            <tr>
+                <td class="td" id="cell_21">2,1</td>
+                <td class="td" id="cell_22">2,2</td>
+                <td class="td" id="cell_23">2,3</td>
+                <td class="td" id="cell_24">2,4</td>
+            </tr>
+            <tr>
+                <td class="td" id="cell_31">3,1</td>
+                <td class="td" id="cell_32">3,2</td>
+                <td class="td" id="cell_33">3,3</td>
+                <td class="td" id="cell_34">3,4</td>
+            </tr>
+            <tr>
+                <td class="td" id="cell_41">4,1</td>
+                <td class="td" id="cell_42">4,2</td>
+                <td class="td" id="cell_43">4,3</td>
+                <td class="td" id="cell_44">4,4</td>
+            </tr>
+        </table>
+        <div id="leftBottomPanel">
+            <table id="board_control">
+                <tr>
+                    <td></td>
+                    <td><input type="button" value="상" class="button_control" onclick="moveUp()"></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td><input type="button" value="좌" class="button_control" onclick="moveLeft()"></td>
+                    <td></td>
+                    <td><input type="button" value="우" class="button_control" onclick="moveRight()"></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td><input type="button" value="하" class="button_control" onclick="moveDown()"></td>
+                    <td></td>
+                </tr>
+            </table>
+            <div>
+                <div id="moveCntInfo">Moves : 0</div>
+                <div id="maxNumInfo">Max : 2</div>
+                <input id="button_restart"type="button" value="재시작" onclick="onStart()">
+            </div>
+        </div>
+    </div>
+    <div id="rightPanel">
+        <div id="board_log"></div>
+    </div>
+</body>
+<script>
+    let board_log = document.getElementById("board_log");
+    board_log.innerHTML = '';
+    let board;
+    let merged;
+    let moveCnt;
+    let moveCntInfo = document.getElementById("moveCntInfo");
+    let maxNum;
+    let maxNumInfo = document.getElementById("maxNumInfo");
+
+    function moveUp() {
+        let moved = false;
+        for(let i =1;i<4;i++){
+            // 첫행은 생략
+            for(let j =0;j<4;j++){
+                if(board[i][j].innerText!=''){
+                    //빈칸이 아니니까 올려야함
+                    let value = board[i][j].innerText;
+                    let index = i-1;
+                    while(true){
+                        if(index<0) break;
+                        if(board[index][j].innerText==''){
+                            //윗 칸이 빈칸
+                            board[index][j].innerText=value;
+                            board[index+1][j].innerText = '';
+                            moved = true;
+                        }else if(board[index][j].innerText==value){
+                            //윗 칸이 값이랑 같음
+                            if(!merged[index][j]){
+                                board[index][j].innerText=value*2;
+                                let temp = Number(board[index][j].innerText);
+                                if(maxNum<temp){
+                                    maxNum = temp;
+                                    UpdateMaxNum();
+                                }
+                                board[index+1][j].innerText='';
+                                merged[index][j] = true;
+                                moved = true;
+                            }else{
+                                //이미 합쳐진 값이라 멈춰야함
+                                break;
+                            }
+                        }else{
+                            break;
+                        }
+                        index--;
+                    }
+                }
+            }
+        }
+        if(!moved) return;
+        moveCnt++;
+        UpdateMoveCnt();
+        createCell();
+        setColor();
+        setDefaultMerged();
+        writeLog("UP");
+    }
+    function moveLeft() {
+        let moved = false;
+        for(let i =0;i<4;i++){
+            for(let j =1;j<4;j++){
+                if(board[i][j].innerText!=''){
+                    let value = board[i][j].innerText;
+                    let index = j-1;
+                    while(true){
+                        if(index<0) break;
+                        if(board[i][index].innerText==''){
+                            board[i][index].innerText=value;
+                            board[i][index+1].innerText = '';
+                            moved = true;
+                        }else if(board[i][index].innerText==value){
+                            if(!merged[i][index]){
+                                board[i][index].innerText=value*2;
+                                let temp = Number(board[i][index].innerText);
+                                if(maxNum<temp){
+                                    maxNum = temp;
+                                    UpdateMaxNum();
+                                }
+                                board[i][index+1].innerText='';
+                                merged[i][index] = true;
+                                moved = true;
+                            }else{
+                                break;
+                            }
+                        }else{
+                            break;
+                        }
+                        index--;
+                    }
+                }
+            }
+        }
+        if(!moved) return;
+        moveCnt++;
+        UpdateMoveCnt();
+        createCell();
+        setColor();
+        setDefaultMerged();
+        writeLog("LEFT");
+    }
+    function moveRight() {
+        let moved = false;
+        for(let i =0;i<4;i++){
+            for(let j =2;j>=0;j--){
+                if(board[i][j].innerText!=''){
+                    let value = board[i][j].innerText;
+                    let index = j+1;
+                    while(true){
+                        if(index>3) break;
+                        if(board[i][index].innerText==''){
+                            board[i][index].innerText=value;
+                            board[i][index-1].innerText = '';
+                            moved = true;
+                        }else if(board[i][index].innerText==value){
+                            if(!merged[i][index]){
+                                board[i][index].innerText=value*2;
+                                let temp = Number(board[i][index].innerText);
+                                if(maxNum<temp){
+                                    maxNum = temp;
+                                    UpdateMaxNum();
+                                }
+                                board[i][index-1].innerText='';
+                                merged[i][index] = true;
+                                moved = true;
+                            }else{
+                                break;
+                            }
+                        }else{
+                            break;
+                        }
+                        index++;
+                    }
+                }
+            }
+        }
+        if(!moved) return;
+        moveCnt++;
+        UpdateMoveCnt();
+        createCell();
+        setColor();
+        setDefaultMerged();
+        writeLog("RIGHT");
+    }
+    function moveDown() {
+        let moved = false;
+        for(let i =2;i>=0;i--){
+            for(let j =0;j<4;j++){
+                if(board[i][j].innerText!=''){
+                    let value = board[i][j].innerText;
+                    let index = i+1;
+                    while(true){
+                        if(index>3) break;
+                        if(board[index][j].innerText==''){
+                            board[index][j].innerText=value;
+                            board[index-1][j].innerText = '';
+                            moved = true;
+                        }else if(board[index][j].innerText==value){
+                            if(!merged[index][j]){
+                                board[index][j].innerText=value*2;
+                                let temp = Number(board[index][j].innerText);
+                                if(maxNum<temp){
+                                    maxNum = temp;
+                                    UpdateMaxNum();
+                                }
+                                board[index-1][j].innerText='';
+                                merged[index][j] = true;
+                                moved = true;
+                            }else{
+                                break;
+                            }
+                        }else{
+                            break;
+                        }
+                        index++;
+                    }
+                }
+            }
+        }
+        if(!moved) return;
+        moveCnt++;
+        UpdateMoveCnt();
+        createCell();
+        setColor();
+        setDefaultMerged();
+        writeLog("DOWN");
+    }
+    function UpdateMaxNum(){
+        maxNumInfo.innerText = "Max : "+maxNum;
+    }
+    function UpdateMoveCnt(){
+        moveCntInfo.innerText = "Moves : "+ moveCnt;
+    }
+    function onStart() {
+        writeLog("START");
+        //cell 배열에 저장
+        board = new Array(4);
+        for (let i = 0; i < 4; i++) {
+            board[i] = new Array(4);
+            for (let j = 0; j < 4   ; j++) {
+                board[i][j] = document.getElementById(`cell_${i + 1}${j + 1}`);
+                board[i][j].innerHTML = '';
+            }
+        }
+        moveCnt = 0;
+        maxNum = 2;
+        UpdateMaxNum();
+        UpdateMoveCnt();
+        setDefaultMerged();
+        createCell();
+        setColor();
+    }
+    function setDefaultMerged(){
+        merged= new Array(4);
+        for (let i = 0; i < 4; i++) {
+            merged[i]= new Array(4);
+            for (let j = 0; j < 4   ; j++) {
+                merged[i][j] = false;
+            }
+        }
+    }
+    function createCell() {
+        // 16개 셀중에 빈곳의 셀 중에서 두 군데에 2 or 4를 생성
+        // 4는 2개가 생성될 수 없음
+        let count = 2;
+        let cnt = 0;
+        let have_four = false;
+        let blankCnt = 0;
+        checkblank:
+        for(let i = 0;i<4;i++){
+            for(let j = 0;j<4;j++){
+                if(board[i][j].innerText == ''){
+                    blankCnt++;
+                    if(blankCnt>=4){
+                        break checkblank;
+                    }
+                }
+            }
+        }
+        if(blankCnt<3) return;
+        else if(blankCnt==3) count--;
+        while (cnt < count) {
+            let rand1 = Math.floor(Math.random() * 10) % 4;
+            let rand2 = Math.floor(Math.random() * 10) % 4;
+            if(board[rand1][rand2].innerHTML==''){
+                if(have_four){
+                    board[rand1][rand2].innerText = 2;
+                }else{
+                    if(Math.floor(Math.random()*10)<7){
+                        board[rand1][rand2].innerText = 2;
+                    }else{
+                        board[rand1][rand2].innerText = 4;
+                        have_four = true;
+                    }
+                }
+                cnt++;
+            }
+        }
+    }
+    function writeLog(log) {
+        let time = new Date();
+        board_log.innerHTML +=
+            `&nbsp${time.getMonth()+1}/${time.getDate()} ${time.getHours()}:${time.getMinutes()}:${time.getSeconds()}`
+            +
+            `&nbsp;&nbsp;${log}<br>`;
+        
+    }
+    function setColor(){
+        let cells = document.getElementsByClassName("td");
+        for(let i = 0;i<cells.length;i++){
+            if(cells[i].innerText!=''){
+                let baseLightness = 94;  
+                let decrement = Math.log2(cells[i].innerText) * 5;
+                let lightness = baseLightness - decrement;
+
+                cells[i].style.backgroundColor = `hsl(340, 100%, ${lightness}%)`;
+            }else{
+                cells[i].style.backgroundColor = "#faebd7";
+            }
+        }
+    }
+    onStart();
+</script>
+
+</html>
